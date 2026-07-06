@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Empreses presentades per lot</title>
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --card-bg:#ffffff;
+    --border:#dde1e6;
+    --header-bg:#2c3e50;
+    --header-text:#ffffff;
+    --accent:#3a6ea5;
+    --text:#1f2933;
+    --muted:#5b6472;
+    --highlight:#fff3c4;
+    --highlight-border:#e8b923;
+    --highlight-header:#8a6d00;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding:24px;
+    background:var(--bg);
+    font-family:"Segoe UI", Arial, sans-serif;
+    color:var(--text);
+  }
+  h1{
+    font-size:22px;
+    margin:0 0 4px 0;
+    color:var(--text);
+  }
+  .subtitle{
+    font-size:13px;
+    color:var(--muted);
+    margin:0 0 18px 0;
+  }
+  .toolbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .toolbar .selected-name{
+    font-size:13px;
+    background:var(--highlight);
+    border:1px solid var(--highlight-border);
+    color:var(--highlight-header);
+    padding:5px 12px;
+    border-radius:20px;
+    font-weight:600;
+    display:none;
+  }
+  .toolbar .selected-name.active{
+    display:inline-block;
+  }
+  .clear-btn{
+    font-size:12.5px;
+    background:#ffffff;
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:5px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    display:none;
+  }
+  .clear-btn.active{
+    display:inline-block;
+  }
+  .clear-btn:hover{
+    background:#f0f2f4;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+  }
+  @media (max-width: 1000px){
+    .grid{grid-template-columns:repeat(2, 1fr);}
+  }
+  @media (max-width: 650px){
+    .grid{grid-template-columns:1fr;}
+  }
+  .card{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 1px 3px rgba(0,0,0,0.05);
+    transition:box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
+  .card.lot-match{
+    border-color:var(--highlight-border);
+    box-shadow:0 0 0 2px var(--highlight-border), 0 4px 10px rgba(0,0,0,0.08);
+    transform:translateY(-1px);
+  }
+  body.filtering .card:not(.lot-match){
+    opacity:0.35;
+  }
+  .card-header{
+    background:var(--header-bg);
+    color:var(--header-text);
+    padding:10px 14px;
+    font-size:13.5px;
+    font-weight:600;
+    line-height:1.35;
+    transition:background 0.15s ease;
+  }
+  .card.lot-match .card-header{
+    background:var(--highlight-header);
+  }
+  .card-header .lotnum{
+    display:inline-block;
+    background:var(--accent);
+    border-radius:4px;
+    padding:1px 8px;
+    margin-right:6px;
+    font-size:12px;
+  }
+  .card.lot-match .card-header .lotnum{
+    background:rgba(255,255,255,0.25);
+  }
+  .card-header .codinum{
+    display:inline-block;
+    color:#cfd8e3;
+    font-weight:400;
+    margin-right:6px;
+    font-size:12px;
+  }
+  .card.lot-match .card-header .codinum{
+    color:#f5e9c2;
+  }
+  .card-body{
+    padding:10px 14px;
+    flex:1;
+  }
+  .card-body ul{
+    margin:0;
+    padding-left:0;
+    list-style:none;
+  }
+  .card-body li{
+    font-size:13px;
+    padding:4px 6px;
+    border-bottom:1px dashed #eef0f2;
+    border-radius:5px;
+    cursor:pointer;
+    transition:background 0.12s ease, color 0.12s ease;
+  }
+  .card-body li:hover{
+    background:#f0f4f8;
+  }
+  .card-body li:last-child{
+    border-bottom:none;
+  }
+  .card-body li.company-match{
+    background:var(--highlight);
+    color:var(--highlight-header);
+    font-weight:600;
+  }
+  .count{
+    font-size:11px;
+    color:var(--muted);
+    padding:6px 14px 10px 14px;
+    border-top:1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<h1>Empreses presentades per lot</h1>
+<p class="subtitle">Clica una empresa per veure a quins lots s'ha presentat.</p>
+
+<div class="toolbar">
+  <span class="selected-name" id="selectedName"></span>
+  <button class="clear-btn" id="clearBtn" onclick="clearSelection()">✕ Treure selecció</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const lots = [
+  {n:1, codi:"1.1", nom:"Assessorament comptable, financer, pressupostari i fiscal", empreses:[
+    "TAX BARCELONA ADVOCATS I ECONOMISTES SL",
+    "GRUP CARLES, GESTIÓ I PROJECTES",
+    "Allyon ETL, SL",
+    "BDO Abogados & Asesores Tributarios, S.L.P.",
+    "JORDI PARRILLA ALAÑA",
+    "ROCA & ASOCIADOS ABOGADOS Y ECONOMISTAS SLP",
+    "KPMG Asesores, S.L.U."
+  ]},
+  {n:2, codi:"1.2", nom:"Gestoria laboral i nòmines", empreses:[
+    "TAX BARCELONA ADVOCATS I ECONOMISTES SL",
+    "GRUP CARLES, GESTIÓ I PROJECTES",
+    "Allyon ETL, SL",
+    "GRUPO CASTILLA PEOPLE, S.A."
+  ]},
+  {n:3, codi:"2.1", nom:"Dret administratiu i contenciós-administratiu", empreses:[
+    "BDO Abogados & Asesores Tributarios, S.L.P.",
+    "JORDI PARRILLA ALAÑA",
+    "LICITA COMPRA PÚBLICA SERVICES SL",
+    "ERNST & YOUNG ABOGADOS, S.L.P",
+    "Pérez-Llorca Abogados, S.L.P.",
+    "Clavell Canals Consulting Group, S.L.P.",
+    "CUCH-AGUILERA LEGAL, S.L.P",
+    "Bufet Vallbé, SLP",
+    "FJM ADVOCATS SLP"
+  ]},
+  {n:4, codi:"2.2", nom:"Dret civil i mercantil", empreses:[
+    "Allyon ETL, SL",
+    "BDO Abogados & Asesores Tributarios, S.L.P.",
+    "JORDI PARRILLA ALAÑA",
+    "Bufet Vallbé, SLP"
+  ]},
+  {n:5, codi:"2.3", nom:"Dret laboral i inspecció de treball", empreses:[
+    "Allyon ETL, SL",
+    "JORDI PARRILLA ALAÑA",
+    "GRUPO CASTILLA PEOPLE, S.A.",
+    "Bufet Vallbé, SLP",
+    "FJM ADVOCATS SLP",
+    "IPSA LEX ABOGADOS, S.L.P."
+  ]},
+  {n:6, codi:"2.4", nom:"Dret penal", empreses:[
+    "Allyon ETL, SL",
+    "JORDI PARRILLA ALAÑA",
+    "MOLINS ADVOCATS DEFENSA PENAL, S.L.P."
+  ]},
+  {n:7, codi:"2.5", nom:"Dret fiscal i tributari", empreses:[
+    "Allyon ETL, SL",
+    "ROCA & ASOCIADOS ABOGADOS Y ECONOMISTAS SLP"
+  ]},
+  {n:8, codi:"3.1", nom:"Recursos Humans", empreses:[
+    "KPMG Asesores, S.L.U.",
+    "GRUPO CASTILLA PEOPLE, S.A.",
+    "Experis ManpowerGroup, S.L.U.",
+    "MANPOWERGROUP SOLUTIONS",
+    "Manpower Team ETT, S.A.U.",
+    "PROJE PITAGORA SL",
+    "ADECCO FORMACION S.A.U.",
+    "Talento en Evolución S.L.U.",
+    "Montserrat Mallorquí Vicens",
+    "Nuevos Tiempos Consultores S.L.",
+    "PAGE GROUP SPAIN RECURSOS HUMANOS ETT, SA",
+    "ARZA & LEGAZPI PEOPLE FIRST, S.L.",
+    "Montserrat Ferrer Masagué"
+  ]},
+  {n:9, codi:"3.2", nom:"Desenvolupament organitzatiu i consultoria d'organització", empreses:[
+    "KPMG Asesores, S.L.U.",
+    "GRUPO CASTILLA PEOPLE, S.A.",
+    "ADECCO FORMACION S.A.U.",
+    "Talento en Evolución S.L.U.",
+    "Montserrat Mallorquí Vicens",
+    "Nuevos Tiempos Consultores S.L.",
+    "PAGE GROUP SPAIN RECURSOS HUMANOS ETT, SA",
+    "ARZA & LEGAZPI PEOPLE FIRST, S.L.",
+    "Montserrat Ferrer Masagué",
+    "Right Management Spain, S.L.U.",
+    "DENGINY BIOREM, SL"
+  ]},
+  {n:10, codi:"4", nom:"Gestió de riscos i assegurances", empreses:[
+    "MARSH, S.A., MEDIADORES DE SEGUROS",
+    "FERRER Y OJEDA ASOCIADOS, CORREDURIA DE SEGUROS, S.L."
+  ]},
+  {n:11, codi:"5.1", nom:"Serveis d'enginyeria", empreses:[
+    "GRUP CARLES, GESTIÓ I PROJECTES",
+    "DENGINY BIOREM, SL",
+    "INTEGRAL ARCHICONSULT SL",
+    "ENERO ARQUITECTURA SLP",
+    "Plana Hurtós Enginyers SLP",
+    "ERF Energia i Sostenibilitat SLU",
+    "ARMENGOL & ROS CONSULTORS I ASSOCIATS, SLU"
+  ]},
+  {n:12, codi:"5.2", nom:"Serveis d'arquitectura", empreses:[
+    "INTEGRAL ARCHICONSULT SL",
+    "ENERO ARQUITECTURA SLP",
+    "Plana Hurtós Enginyers SLP",
+    "PINEARQ SLP"
+  ]},
+  {n:13, codi:"5.3", nom:"Serveis d'assessorament en infraestructures, instal·lacions, serveis científico-tècnics i TIC", empreses:[
+    "GRUP CARLES, GESTIÓ I PROJECTES",
+    "DENGINY BIOREM, SL",
+    "INTEGRAL ARCHICONSULT SL",
+    "ENERO ARQUITECTURA SLP",
+    "Plana Hurtós Enginyers SLP",
+    "ERF Energia i Sostenibilitat SLU",
+    "ARMENGOL & ROS CONSULTORS I ASSOCIATS, SLU",
+    "PINEARQ SLP",
+    "Salazar & Seguí asociados SL",
+    "ThinkUPC, S.L.U."
+  ]},
+  {n:14, codi:"5.4", nom:"Serveis d'assessorament científic i tècnic especialitzat en laboratoris, plataformes científico-tècniques, bioseguretat...", empreses:[
+    "DENGINY BIOREM, SL",
+    "ENERO ARQUITECTURA SLP",
+    "Plana Hurtós Enginyers SLP",
+    "ARMENGOL & ROS CONSULTORS I ASSOCIATS, SLU"
+  ]}
+];
+
+function slug(str){
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const grid = document.getElementById('grid');
+let selected = null;
+
+lots.forEach(lot => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.lot = lot.n;
+
+  const header = document.createElement('div');
+  header.className = 'card-header';
+  header.innerHTML = `<span class="lotnum">Lot ${lot.n}</span><span class="codinum">${lot.codi}</span>${lot.nom}`;
+
+  const body = document.createElement('div');
+  body.className = 'card-body';
+  const ul = document.createElement('ul');
+
+  lot.empreses.forEach(empresa => {
+    const li = document.createElement('li');
+    li.textContent = empresa;
+    li.dataset.company = slug(empresa);
+    li.addEventListener('click', () => selectCompany(empresa));
+    ul.appendChild(li);
+  });
+  body.appendChild(ul);
+
+  const count = document.createElement('div');
+  count.className = 'count';
+  count.textContent = `${lot.empreses.length} empresa${lot.empreses.length===1?'':'es'} presentada${lot.empreses.length===1?'':'es'}`;
+
+  card.appendChild(header);
+  card.appendChild(body);
+  card.appendChild(count);
+  grid.appendChild(card);
+});
+
+function selectCompany(name){
+  if(selected === name){
+    clearSelection();
+    return;
+  }
+  selected = name;
+  const key = slug(name);
+  document.body.classList.add('filtering');
+  document.getElementById('selectedName').textContent = name;
+  document.getElementById('selectedName').classList.add('active');
+  document.getElementById('clearBtn').classList.add('active');
+
+  document.querySelectorAll('.card').forEach(card => card.classList.remove('lot-match'));
+  document.querySelectorAll('.card-body li').forEach(li => li.classList.remove('company-match'));
+
+  document.querySelectorAll(`li[data-company="${key}"]`).forEach(li => {
+    li.classList.add('company-match');
+    li.closest('.card').classList.add('lot-match');
+  });
+}
+
+function clearSelection(){
+  selected = null;
+  document.body.classList.remove('filtering');
+  document.getElementById('selectedName').classList.remove('active');
+  document.getElementById('clearBtn').classList.remove('active');
+  document.querySelectorAll('.card').forEach(card => card.classList.remove('lot-match'));
+  document.querySelectorAll('.card-body li').forEach(li => li.classList.remove('company-match'));
+}
+</script>
+
+</body>
+</html>
